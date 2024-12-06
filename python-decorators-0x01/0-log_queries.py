@@ -1,10 +1,6 @@
 import sqlite3
 import functools
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from datetime import datetime
 
 def log_queries(func):
     """
@@ -14,7 +10,8 @@ def log_queries(func):
     def wrapper(*args, **kwargs):
         # Check if the first argument is a query
         if args and isinstance(args[0], str):
-            logger.info(f"Executing query: {args[0]}")
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[{timestamp}] Executing query: {args[0]}")
         
         # Execute the original function
         return func(*args, **kwargs)
