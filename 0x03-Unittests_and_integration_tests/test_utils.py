@@ -58,21 +58,20 @@ class TestGetJson(unittest.TestCase):
         :param test_url: URL to mock
         :param test_payload: Expected payload to be returned
         """
-        # Create a mock response object with a json method that returns test_payload
+        # Use patch as a context manager to mock requests.get
         with patch('requests.get') as mock_get:
-            # Configure the mock to return a mock response with the specified json
-            mock_response = Mock()
-            mock_response.json.return_value = test_payload
-            mock_get.return_value = mock_response
+            # Configure the mock response
+            mock_get.return_value.json.return_value = test_payload
             
             # Call the function being tested
             result = get_json(test_url)
             
-            # Assert that requests.get was called once with the correct URL
+            # Assert that requests.get was called exactly once with the correct URL
             mock_get.assert_called_once_with(test_url)
             
             # Assert that the returned result matches the test payload
             self.assertEqual(result, test_payload)
+
 
 if __name__ == '__main__':
     unittest.main()
