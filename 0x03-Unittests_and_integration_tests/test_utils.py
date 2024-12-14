@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import unittest
 from parameterized import parameterized
 from typing import Mapping, Sequence, Any
