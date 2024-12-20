@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Conversation, Message, User
@@ -14,6 +14,8 @@ class ConversationViewSet(viewsets.ModelViewSet):
     """
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
+    filter_backends = [filters.SearchFilter]  # Add filters
+    search_fields = ['participants__first_name', 'participants__last_name']  # Filter by participant names
 
     def create(self, request, *args, **kwargs):
         """
@@ -49,6 +51,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     """
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    filter_backends = [filters.SearchFilter]  # Add filters
+    search_fields = ['message_body', 'sender__first_name', 'sender__last_name']  # Filter by message content or sender
 
     def create(self, request, *args, **kwargs):
         """
