@@ -42,3 +42,25 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def get_participants(self, obj):
         return [f"{participant.first_name} {participant.last_name}" for participant in obj.participants.all()]
+
+
+class SignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'first_name', 'last_name', 'password', 'phone_number', 'role']
+
+    def create(self, validated_data):
+        # Create a new user with the provided data
+        user = User.objects.create(
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data.get('phone_number'),
+            role=validated_data['role'],
+        )
+        # Set the password securely
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
