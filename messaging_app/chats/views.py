@@ -1,6 +1,8 @@
 from django.shortcuts import render
 
 # Create your views here.
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import IsOwnerOfConversation, IsSenderOfMessage
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -94,9 +96,26 @@ class SignupView(APIView):
     """
     Endpoint for user registration.
     """
+    permission_classes = [AllowAny]  # Allow unauthenticated access
+
     def post(self, request, *args, **kwargs):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsOwnerOfConversation]
+
+    def get_queryset(self):
+        # Return only conversations the user participates in
+        return Conversation.objects.filter(participants=self.request.user)
+
+class MessageViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsSenderOfMessage]
+
+    def get_queryset(self):
+        # Return only messages in conversations the user participates in
+        return Message.objects.filter(conversation__participants=self.request.user)
