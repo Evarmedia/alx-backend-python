@@ -108,3 +108,113 @@ class MessageEditLoggingTests(TestCase):
         # Check that no history record is created
         history = MessageHistory.objects.filter(message=self.message)
         self.assertEqual(history.count(), 0)
+
+class UserDeletionTests(TestCase):
+    def setUp(self):
+        # Create test users
+        self.user1 = User.objects.create_user(username="user1", password="password")
+        self.user2 = User.objects.create_user(username="user2", password="password")
+        
+        # Create messages between users
+        self.message1 = Message.objects.create(
+            sender=self.user1, receiver=self.user2, content="Hello from user1"
+        )
+        self.message2 = Message.objects.create(
+            sender=self.user2, receiver=self.user1, content="Hello from user2"
+        )
+        
+        # Create notifications for messages
+        Notification.objects.create(user=self.user2, message=self.message1)
+        Notification.objects.create(user=self.user1, message=self.message2)
+        
+        # Log a message edit
+        MessageHistory.objects.create(
+            message=self.message1,
+            old_content="Original content",
+            edited_by=self.user1
+        )
+
+    def test_user_deletion_cleans_related_data(self):
+        # Delete user1
+        self.user1.delete()
+
+        # Verify that messages sent by or received by user1 are deleted
+        self.assertEqual(Message.objects.filter(sender=self.user1).count(), 0)
+        self.assertEqual(Message.objects.filter(receiver=self.user1).count(), 0)
+
+        # Verify that notifications for user1 are deleted
+        self.assertEqual(Notification.objects.filter(user=self.user1).count(), 0)
+
+        # Verify that message histories edited by user1 are deleted
+        self.assertEqual(MessageHistory.objects.filter(edited_by=self.user1).count(), 0)
+
+    def test_related_user_data_persistence_for_others(self):
+        # Delete user1
+        self.user1.delete()
+
+        # Verify that user2's data is still intact
+        self.assertEqual(User.objects.filter(username="user2").count(), 1)
+        self.assertEqual(Notification.objects.filter(user=self.user2).count(), 1)
+        self.assertEqual(Message.objects.filter(sender=self.user2).count(), 1)
+        self.assertEqual(Message.objects.filter(receiver=self.user2).count(), 0)
+
+class ThreadedConversationTests(TestCase):
+    def setUp(self):
+        # Create test users
+        self.user1 = User.objects.create_user(username="user1", password="password")
+        self.user2 = User.objects.create_user(username="user2", password="password")
+        
+        # Create a root message
+        self.root_message = Message.objects.create(
+            sender=self.user1, receiver=self.user2, content="Root message"
+        )
+        
+        # Create replies
+        self.reply1 = Message.objects.create(
+            sender=self.user2, receiver=self.user1, content="First reply", parent_message=self.root_message
+        )
+        self.reply2 = Message.objects.create(
+            sender=self.user1, receiver=self.user2, content="Second reply", parent_message=self.reply1
+        )
+        self.reply3 = Message.objects.create(
+            sender=self.user2, receiver=self.user1, content="Third reply", parent_message=self.reply1
+        )
+
+    def test_thread_structure(self):
+        # Fetch the thread for the root message
+        replies = self.root_message.replies.all()
+
+        # Check that the root message has the correct direct replies
+        self.assertEqual(replies.count(), 1)
+        self.assertEqual(replies.first(), self.reply1)
+
+        # Check that the first reply has the correct nested replies
+        nested_replies = self.reply1.replies.all()
+        self.assertEqual(nested_replies.count(), 2)
+        self.assertIn(self.reply2, nested_replies)
+        self.assertIn(self.reply3, nested_replies)
+
+    def test_recursive_thread_view(self):
+        # Use the test client to call the view
+        response = self.client.get(f'/conversation/{self.root_message.id}/')
+        self.assertEqual(response.status_code, 200)
+
+        # Parse the response JSON
+        data = response.json()
+
+        # Check root message details
+        self.assertEqual(data['id'], self.root_message.id)
+        self.assertEqual(data['content'], "Root message")
+        self.assertEqual(len(data['replies']), 1)
+
+        # Check the nested replies
+        first_reply = data['replies'][0]
+        self.assertEqual(first_reply['id'], self.reply1.id)
+        self.assertEqual(len(first_reply['replies']), 2)
+
+        second_reply = first_reply['replies'][0]
+        self.assertEqual(second_reply['id'], self.reply2.id)
+
+        third_reply = first_reply['replies'][1]
+        self.assertEqual(third_reply['id'], self.reply3.id)
+
