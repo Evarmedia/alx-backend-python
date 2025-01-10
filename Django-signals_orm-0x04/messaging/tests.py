@@ -1,6 +1,7 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from .models import Message, Notification, MessageHistory
+from django.core.cache import cache
 
 class MessagingAppTests(TestCase):
     def setUp(self):
@@ -240,3 +241,37 @@ class UnreadMessagesManagerTests(TestCase):
         unread_messages = Message.unread.unread_for_user(self.user1)
         self.assertEqual(unread_messages.count(), 1)
         self.assertEqual(unread_messages.first().content, "Unread message 3")
+
+
+class CachedViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="user1", password="password")
+        self.client.login(username="user1", password="password")
+
+        # Create unread messages
+        Message.objects.create(sender=self.user, receiver=self.user, content="Message 1")
+        Message.objects.create(sender=self.user, receiver=self.user, content="Message 2", read=True)
+
+    def test_unread_messages_cache(self):
+        # Fetch unread messages
+        response1 = self.client.get('/unread_messages/')
+        self.assertEqual(response1.status_code, 200)
+        data1 = response1.json()
+        self.assertEqual(len(data1), 1)
+
+        # Add a new unread message
+        Message.objects.create(sender=self.user, receiver=self.user, content="Message 3")
+
+        # Fetch again before cache expiry (should return same result as before)
+        response2 = self.client.get('/unread_messages/')
+        self.assertEqual(response2.status_code, 200)
+        data2 = response2.json()
+        self.assertEqual(len(data2), 1)  # Cache still active
+
+        # Clear cache and fetch again (should return updated result)
+        cache.clear()
+        response3 = self.client.get('/unread_messages/')
+        self.assertEqual(response3.status_code, 200)
+        data3 = response3.json()
+        self.assertEqual(len(data3), 2)  # Cache cleared, updated data

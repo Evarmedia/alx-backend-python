@@ -2,8 +2,10 @@ from django.shortcuts import redirect
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_page
 from django.http import JsonResponse
 from .models import Message
+
 
 # Create your views here.
 
@@ -53,6 +55,7 @@ def get_threaded_conversation(request, message_id):
 
     return JsonResponse(conversation, safe=False)
 
+@cache_page(60)  # Cache the view for 60 seconds
 @login_required
 def unread_messages(request):
     """
