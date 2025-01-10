@@ -232,11 +232,11 @@ class UnreadMessagesManagerTests(TestCase):
 
     def test_unread_messages_for_user(self):
         # Fetch unread messages for user2
-        unread_messages = Message.unread.for_user(self.user2)
+        unread_messages = Message.unread.unread_for_user(self.user2)
         self.assertEqual(unread_messages.count(), 1)
         self.assertEqual(unread_messages.first().content, "Unread message 1")
 
         # Fetch unread messages for user1
-        unread_messages = Message.unread.for_user(self.user1)
+        unread_messages = Message.unread.unread_for_user(self.user1)
         self.assertEqual(unread_messages.count(), 1)
         self.assertEqual(unread_messages.first().content, "Unread message 3")
