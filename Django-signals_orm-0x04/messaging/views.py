@@ -53,13 +53,12 @@ def get_threaded_conversation(request, message_id):
 
     return JsonResponse(conversation, safe=False)
 
-
 @login_required
 def unread_messages(request):
     """
-    Retrieve all unread messages for the logged-in user, optimized with .only().
+    Retrieve all unread messages for the logged-in user.
     """
-    unread_messages = Message.objects.filter(receiver=request.user, read=False).only(
+    unread_messages = Message.unread.unread_for_user(request.user).only(
         'id', 'sender', 'content', 'timestamp'
     )
     data = [
