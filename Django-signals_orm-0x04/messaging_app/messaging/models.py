@@ -1,25 +1,21 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.utils.timezone import now
 
-# Create your models here.
-
-class Message(models.Model): 
-    sender = models.CharField(max_length=100)
-    receiver = models.CharField(max_length=100)
-    message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    content = models.TextField()
+    timestamp = models.DateTimeField(default=now)
 
     def __str__(self):
-        return self.message
-
-# Create a Notification model to store notifications, linking it to the User and Message models.
+        return f"Message from {self.sender.username} to {self.receiver.username}"
 
 class Notification(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
-    read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='notifications')
+    timestamp = models.DateTimeField(default=now)
+    is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.message.message
+        return f"Notification for {self.user.username}"
