@@ -218,3 +218,25 @@ class ThreadedConversationTests(TestCase):
         third_reply = first_reply['replies'][1]
         self.assertEqual(third_reply['id'], self.reply3.id)
 
+
+class UnreadMessagesManagerTests(TestCase):
+    def setUp(self):
+        # Create test users
+        self.user1 = User.objects.create_user(username="user1", password="password")
+        self.user2 = User.objects.create_user(username="user2", password="password")
+
+        # Create messages
+        Message.objects.create(sender=self.user1, receiver=self.user2, content="Unread message 1")
+        Message.objects.create(sender=self.user1, receiver=self.user2, content="Unread message 2", read=True)
+        Message.objects.create(sender=self.user2, receiver=self.user1, content="Unread message 3")
+
+    def test_unread_messages_for_user(self):
+        # Fetch unread messages for user2
+        unread_messages = Message.unread.for_user(self.user2)
+        self.assertEqual(unread_messages.count(), 1)
+        self.assertEqual(unread_messages.first().content, "Unread message 1")
+
+        # Fetch unread messages for user1
+        unread_messages = Message.unread.for_user(self.user1)
+        self.assertEqual(unread_messages.count(), 1)
+        self.assertEqual(unread_messages.first().content, "Unread message 3")
