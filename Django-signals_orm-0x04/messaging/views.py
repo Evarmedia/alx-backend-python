@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import Message
 
@@ -14,12 +15,15 @@ def delete_user(request, user_id):
     user.delete()
     return redirect('home')  # Redirect to the home page after deletion
 
+@login_required
 def get_threaded_conversation(request, message_id):
     """
-    Fetch a message and all its replies recursively.
+    Fetch a message and all its replies recursively, optimized with select_related and prefetch_related.
     """
     def fetch_replies(message):
-        replies = message.replies.prefetch_related('sender', 'receiver')
+        replies = message.replies.prefetch_related(
+            'sender', 'receiver'
+        ).select_related('parent_message', 'sender', 'receiver')
         return [
             {
                 'id': reply.id,
@@ -32,9 +36,12 @@ def get_threaded_conversation(request, message_id):
             for reply in replies
         ]
 
-    # Get the root message
-    root_message = get_object_or_404(Message.objects.prefetch_related('replies'), id=message_id)
-    
+    # Ensure the sender is the logged-in user or has access
+    root_message = get_object_or_404(
+        Message.objects.filter(sender=request.user).select_related('sender', 'receiver', 'parent_message'),
+        id=message_id
+    )
+
     conversation = {
         'id': root_message.id,
         'content': root_message.content,
