@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-app
+  labels:
+    app: messaging-app
+spec:
+  replicas: 2  # Runs 2 instances of the app
+  selector:
+    matchLabels:
+      app: messaging-app
+  template:
+    metadata:
+      labels:
+        app: messaging-app
+    spec:
+      containers:
+      - name: messaging-app
+        image: messaging_app:latest  # Ensure this matches your built Docker image
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_HOST
+          value: "mysql-service"  # This should match your MySQL service name
+        - name: DB_NAME
+          value: "messaging_db"
+        - name: DB_USER
+          value: "messaging_user"
+        - name: DB_PASSWORD
+          value: "securepassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging-service
+spec:
+  selector:
+    app: messaging-app
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP  # Keeps it internal within the cluster
+
