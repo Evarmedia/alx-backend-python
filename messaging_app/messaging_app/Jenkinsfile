@@ -13,13 +13,13 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: env.GITHUB_CREDENTIALS,
-                    url: 'https://github.com/mankindjnr/alx-backend-python.git'
+                    url: 'https://github.com/Evarmedia/alx-backend-python.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh 'pip install -r messaging_app/requirements.txt'
             }
         }
 
