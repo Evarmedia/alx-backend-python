@@ -1,0 +1,28 @@
+services:
+  web:
+    build:
+      context: ./messaging_app
+    container_name: messaging_app
+    command: >
+      sh -c "python manage.py migrate && python manage.py collectstatic --noinput && python3 manage.py runserver"
+    networks:
+      - alx_message_net
+
+  db:
+    image: mysql:5.7
+    container_name: messaging_db
+    networks:
+      - alx_message_net
+    environment:
+      - MYSQL_USER=alx
+      - MYSQL_PASSWORD=alx
+      - MYSQL_DB=alx_message
+    volumes:
+      - alx_message_db:/var/lib/postgresql/data
+
+networks:
+  alx_message_net:
+    driver: bridge
+
+volumes:
+  alx_message_db:
